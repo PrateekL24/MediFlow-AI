@@ -56,6 +56,9 @@ class GraphState(TypedDict):
 
     workflow_id: Optional[str]
 
+    # Graph node currently executing / last executed
+    current_node: Optional[str]
+
     # Agent currently responsible for the workflow
     current_agent: Optional[str]
 
