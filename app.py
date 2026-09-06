@@ -1,6 +1,6 @@
 import streamlit as st
 
-from backend.workflows.graph import graph
+from backend.workflows.runner import WorkflowRunner
 
 
 # ---------------------------------------
@@ -32,7 +32,8 @@ if "workflow_state" not in st.session_state:
         "user_input": "",
         "session_id": "streamlit-session",
 
-        "intent": "",
+        "intent": None,
+
         "patient_data": {},
         "request_data": {},
 
@@ -45,16 +46,20 @@ if "workflow_state" not in st.session_state:
 
         "messages": [],
 
-        "response": "",
+        "response": None,
 
         "patient_lookup": None,
         "selected_patient": None,
 
         "selected_doctor": None,
         "doctors_found": [],
+
         "appointment_data": {},
 
-        "next_step": None
+        "next_step": None,
+
+        "workflow_status": "started",
+        "last_error": None
     }
 
 
@@ -76,7 +81,10 @@ if prompt := st.chat_input(
     "How can I help you today?"
 ):
 
+    # -----------------------------------
     # Show user message
+    # -----------------------------------
+
     st.session_state.messages.append(
         {
             "role": "user",
@@ -88,32 +96,34 @@ if prompt := st.chat_input(
         st.markdown(prompt)
 
 
-    # ---------------------------------------
-    # Update Existing Workflow State
-    # ---------------------------------------
+    # -----------------------------------
+    # Get Existing Workflow State
+    # -----------------------------------
 
     state = st.session_state.workflow_state
 
-    state["user_input"] = prompt
+
+    # -----------------------------------
+    # Run Workflow
+    # -----------------------------------
+
+    result = WorkflowRunner.run(
+        user_input=prompt,
+        session_id=state["session_id"],
+        existing_state=state
+    )
 
 
-    # ---------------------------------------
-    # Run LangGraph
-    # ---------------------------------------
-
-    result = graph.invoke(state)
-
-
-    # ---------------------------------------
-    # Save Updated State
-    # ---------------------------------------
+    # -----------------------------------
+    # Save Updated Workflow State
+    # -----------------------------------
 
     st.session_state.workflow_state = result
 
 
-    # ---------------------------------------
-    # Get Response
-    # ---------------------------------------
+    # -----------------------------------
+    # Get Assistant Response
+    # -----------------------------------
 
     response = result.get(
         "response",
@@ -121,9 +131,9 @@ if prompt := st.chat_input(
     )
 
 
-    # ---------------------------------------
+    # -----------------------------------
     # Show Assistant Response
-    # ---------------------------------------
+    # -----------------------------------
 
     with st.chat_message("assistant"):
         st.markdown(response)
