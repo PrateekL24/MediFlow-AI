@@ -11,11 +11,42 @@ from agents.appointment.agent import AppointmentAgent
 
 workflow = StateGraph(GraphState)
 
-workflow.add_node("supervisor", supervisor_agent)
-workflow.add_node("reception", ReceptionAgent.run)
-workflow.add_node("registration", RegistrationAgent.run)
-workflow.add_node("doctor", DoctorAgent.run)
-workflow.add_node("appointment", AppointmentAgent.run)
+
+def run_node(node_name, handler):
+    """Record the actual graph node before running its handler."""
+
+    def wrapped(state: GraphState):
+        state["current_node"] = node_name
+        return handler(state)
+
+    return wrapped
+
+
+workflow.add_node(
+    "supervisor",
+    run_node("supervisor", supervisor_agent)
+)
+workflow.add_node(
+    "reception",
+    run_node("reception", ReceptionAgent.run)
+)
+workflow.add_node(
+    "registration",
+    run_node("registration", RegistrationAgent.run)
+)
+workflow.add_node(
+    "doctor",
+    run_node("doctor", DoctorAgent.run)
+)
+workflow.add_node(
+    "appointment",
+    run_node("appointment", AppointmentAgent.run)
+)
+
+
+def entry_router_node(state: GraphState):
+    state["current_node"] = "entry_router"
+    return state
 
 
 def entry_route(state: GraphState):
@@ -150,7 +181,7 @@ def appointment_route(state: GraphState):
     return END
 
 
-workflow.add_node("entry_router", lambda state: state)
+workflow.add_node("entry_router", entry_router_node)
 workflow.set_entry_point("entry_router")
 
 workflow.add_conditional_edges("entry_router", entry_route)
