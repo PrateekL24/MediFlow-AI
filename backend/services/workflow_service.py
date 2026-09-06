@@ -23,6 +23,7 @@ class WorkflowService:
             "selected_doctor": state.get("selected_doctor"),
             "doctors_found": state.get("doctors_found"),
             "appointment_data": state.get("appointment_data"),
+            "current_node": state.get("current_node"),
             "current_agent": state.get("current_agent"),
             "awaiting_input": state.get("awaiting_input"),
             "next_step": state.get("next_step"),
@@ -53,7 +54,9 @@ class WorkflowService:
                 current_agent=state.get(
                     "current_agent"
                 ),
-                current_node=None,
+                current_node=state.get(
+                    "current_node"
+                ),
                 status="running"
             )
         )
@@ -78,7 +81,11 @@ class WorkflowService:
                 current_agent=state.get(
                     "current_agent"
                 ),
-                current_node=current_node,
+                current_node=(
+                    current_node
+                    if current_node is not None
+                    else state.get("current_node")
+                ),
                 status=(
                     WorkflowService
                     .get_database_status(
