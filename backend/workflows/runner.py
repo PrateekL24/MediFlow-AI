@@ -9,6 +9,14 @@ from backend.workflows.graph import graph
 
 class WorkflowRunner:
 
+    # These values mean the workflow has another business step to execute.
+    # Values such as "continue" mean the current interaction is complete.
+    ACTIVE_NEXT_STEPS = {
+        "reception",
+        "registration",
+        "appointment"
+    }
+
     @staticmethod
     def run(
         user_input: str,
@@ -127,7 +135,7 @@ class WorkflowRunner:
                     )
                 )
 
-            elif result.get("next_step"):
+            elif result.get("next_step") in WorkflowRunner.ACTIVE_NEXT_STEPS:
 
                 WorkflowService.mark_in_progress(
                     workflow_id=workflow_id,
