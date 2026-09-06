@@ -37,6 +37,7 @@ class WorkflowRunner:
                 "tool_result": None,
 
                 "workflow_id": workflow_id,
+                "current_node": None,
                 "current_agent": None,
 
                 "awaiting_input": None,
@@ -71,9 +72,9 @@ class WorkflowRunner:
 
         else:
 
-            # -----------------------------------
+            # ---------------------------------------
             # Continue existing workflow
-            # -----------------------------------
+            # ---------------------------------------
 
             state = existing_state
             state["user_input"] = user_input
@@ -94,9 +95,9 @@ class WorkflowRunner:
 
         try:
 
-            # -----------------------------------
+            # ---------------------------------------
             # Workflow is actively running
-            # -----------------------------------
+            # ---------------------------------------
 
             WorkflowService.mark_in_progress(
                 workflow_id=workflow_id,
@@ -104,15 +105,15 @@ class WorkflowRunner:
                 current_node="entry_router"
             )
 
-            # -----------------------------------
+            # ---------------------------------------
             # Execute LangGraph
-            # -----------------------------------
+            # ---------------------------------------
 
             result = graph.invoke(state)
 
-            # -----------------------------------
+            # ---------------------------------------
             # Determine final workflow state
-            # -----------------------------------
+            # ---------------------------------------
 
             result["workflow_id"] = workflow_id
 
@@ -122,7 +123,17 @@ class WorkflowRunner:
                     workflow_id=workflow_id,
                     state=result,
                     current_node=result.get(
-                        "current_agent"
+                        "current_node"
+                    )
+                )
+
+            elif result.get("next_step"):
+
+                WorkflowService.mark_in_progress(
+                    workflow_id=workflow_id,
+                    state=result,
+                    current_node=result.get(
+                        "current_node"
                     )
                 )
 
@@ -132,7 +143,7 @@ class WorkflowRunner:
                     workflow_id=workflow_id,
                     state=result,
                     current_node=result.get(
-                        "current_agent"
+                        "current_node"
                     )
                 )
 
@@ -140,9 +151,9 @@ class WorkflowRunner:
 
         except Exception as exc:
 
-            # -----------------------------------
+            # ---------------------------------------
             # Workflow failure
-            # -----------------------------------
+            # ---------------------------------------
 
             error_message = str(exc)
 
@@ -153,7 +164,7 @@ class WorkflowRunner:
                 state=state,
                 error_message=error_message,
                 current_node=state.get(
-                    "current_agent"
+                    "current_node"
                 )
             )
 
