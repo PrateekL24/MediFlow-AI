@@ -106,8 +106,11 @@ class DocumentService:
         except Exception as exc:
             try:
                 delete_document(storage_path)
-            except Exception:
-                pass
+            except Exception as cleanup_exc:
+                print(
+                    "Document storage cleanup failed: "
+                    f"{cleanup_exc}"
+                )
 
             return {
                 "success": False,
