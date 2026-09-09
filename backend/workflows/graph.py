@@ -7,6 +7,7 @@ from agents.reception.agent import ReceptionAgent
 from agents.registration.agent import RegistrationAgent
 from agents.doctor.agent import DoctorAgent
 from agents.appointment.agent import AppointmentAgent
+from agents.document.agent import DocumentAgent
 
 
 workflow = StateGraph(GraphState)
@@ -44,6 +45,16 @@ workflow.add_node(
 )
 
 
+def document_node(state: GraphState, config=None):
+    state["current_node"] = "document"
+    configurable = (config or {}).get("configurable", {})
+    uploaded_file = configurable.get("uploaded_file")
+    return DocumentAgent.run(state, uploaded_file=uploaded_file)
+
+
+workflow.add_node("document", document_node)
+
+
 def entry_router_node(state: GraphState):
     state["current_node"] = "entry_router"
     return state
@@ -66,6 +77,9 @@ def entry_route(state: GraphState):
 
     if current_agent == "Appointment" and awaiting_input:
         return "appointment"
+
+    if current_agent == "Document" and awaiting_input == "document_upload":
+        return "document"
 
     doctor_intents = [
         "doctor_recommendation",
@@ -122,6 +136,8 @@ def supervisor_route(state: GraphState):
     if intent in patient_action_intents:
         if intent == "book_appointment":
             return "appointment"
+        if intent == "upload_document":
+            return "reception"
         return "reception"
 
     if intent in doctor_intents:
@@ -138,6 +154,9 @@ def reception_route(state: GraphState):
 
     if next_step == "registration":
         return "registration"
+
+    if next_step == "document" and selected_patient:
+        return "document"
 
     # A selected slot means the appointment workflow is waiting for the
     # patient-identification step to finish, even for an availability-first
@@ -190,5 +209,6 @@ workflow.add_conditional_edges("reception", reception_route)
 workflow.add_conditional_edges("registration", registration_route)
 workflow.add_edge("doctor", END)
 workflow.add_conditional_edges("appointment", appointment_route)
+workflow.add_edge("document", END)
 
 graph = workflow.compile()
