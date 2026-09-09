@@ -45,6 +45,12 @@ class GraphState(TypedDict):
     appointment_data: Optional[dict]
 
     # ---------------------------------------
+    # Document information
+    # ---------------------------------------
+
+    document_data: Optional[dict]
+
+    # ---------------------------------------
     # Agent / Tool output
     # ---------------------------------------
 
@@ -55,28 +61,13 @@ class GraphState(TypedDict):
     # ---------------------------------------
 
     workflow_id: Optional[str]
-
-    # Graph node currently executing / last executed
     current_node: Optional[str]
-
-    # Agent currently responsible for the workflow
     current_agent: Optional[str]
-
-    # What information the current agent is waiting for
     awaiting_input: Optional[str]
-
-    # What the workflow should do next
     next_step: Optional[str]
 
     # ---------------------------------------
     # Workflow lifecycle
-    #
-    # Possible values:
-    # - started
-    # - in_progress
-    # - waiting_for_user
-    # - completed
-    # - failed
     # ---------------------------------------
 
     workflow_status: Optional[str]
