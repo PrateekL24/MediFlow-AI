@@ -25,6 +25,30 @@ def test_document_rejects_empty_file():
     assert "empty" in result["message"]
 
 
+def test_document_rejects_mismatched_extension():
+    result = DocumentService.upload_document(
+        patient_id="patient-1",
+        document_name="report.png",
+        content_type="application/pdf",
+        file_bytes=b"%PDF-1.7",
+    )
+
+    assert result["success"] is False
+    assert "extension" in result["message"]
+
+
+def test_document_rejects_invalid_file_signature():
+    result = DocumentService.upload_document(
+        patient_id="patient-1",
+        document_name="report.pdf",
+        content_type="application/pdf",
+        file_bytes=b"not-a-pdf",
+    )
+
+    assert result["success"] is False
+    assert "valid document" in result["message"]
+
+
 def test_document_upload_stores_file_then_metadata(monkeypatch):
     calls = []
 
@@ -51,7 +75,7 @@ def test_document_upload_stores_file_then_metadata(monkeypatch):
         patient_id="patient-1",
         document_name="/tmp/blood_report.pdf",
         content_type="application/pdf",
-        file_bytes=b"pdf-bytes",
+        file_bytes=b"%PDF-1.7\nmock-pdf",
         workflow_id="workflow-1",
     )
 
@@ -86,7 +110,7 @@ def test_document_metadata_failure_removes_uploaded_file(monkeypatch):
         patient_id="patient-1",
         document_name="report.pdf",
         content_type="application/pdf",
-        file_bytes=b"pdf-bytes",
+        file_bytes=b"%PDF-1.7\nmock-pdf",
     )
 
     assert result["success"] is False
