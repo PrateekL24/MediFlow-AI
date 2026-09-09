@@ -37,6 +37,7 @@ class DocumentAgent:
             document_name=uploaded_file.name,
             content_type=uploaded_file.type or "",
             file_bytes=uploaded_file.getvalue(),
+            workflow_id=state.get("workflow_id"),
         )
 
         state["tool_result"] = result
