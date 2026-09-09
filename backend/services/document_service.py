@@ -8,9 +8,9 @@ from backend.services.audit_service import AuditService
 
 
 ALLOWED_DOCUMENT_TYPES = {
-    "application/pdf": "pdf",
-    "image/jpeg": "jpg",
-    "image/png": "png",
+    "application/pdf": {"extension": "pdf", "extensions": {".pdf"}, "signature": b"%PDF-"},
+    "image/jpeg": {"extension": "jpg", "extensions": {".jpg", ".jpeg"}, "signature": b"\xff\xd8\xff"},
+    "image/png": {"extension": "png", "extensions": {".png"}, "signature": b"\x89PNG\r\n\x1a\n"},
 }
 
 DEFAULT_MAX_DOCUMENT_SIZE = 10 * 1024 * 1024
@@ -32,11 +32,20 @@ class DocumentService:
         if not document_name or not document_name.strip():
             return {"success": False, "message": "Document name is required."}
 
-        extension = ALLOWED_DOCUMENT_TYPES.get(content_type)
-        if extension is None:
+        document_type = ALLOWED_DOCUMENT_TYPES.get(content_type)
+        if document_type is None:
             return {
                 "success": False,
                 "message": "Unsupported document type. Please upload a PDF, JPG, or PNG file.",
+            }
+
+        filename = Path(document_name).name
+        extension = Path(filename).suffix.lower()
+
+        if extension not in document_type["extensions"]:
+            return {
+                "success": False,
+                "message": "The document extension does not match its file type.",
             }
 
         max_size = int(os.getenv("MAX_DOCUMENT_SIZE_BYTES", DEFAULT_MAX_DOCUMENT_SIZE))
@@ -50,8 +59,14 @@ class DocumentService:
                 "message": "The document is too large. Please upload a file up to 10 MB.",
             }
 
+        if not file_bytes.startswith(document_type["signature"]):
+            return {
+                "success": False,
+                "message": "The uploaded file does not appear to be a valid document of the selected type.",
+            }
+
         document_id = str(uuid.uuid4())
-        storage_path = f"{patient_id}/{document_id}.{extension}"
+        storage_path = f"{patient_id}/{document_id}.{document_type['extension']}"
 
         try:
             upload_document(
@@ -63,8 +78,8 @@ class DocumentService:
             metadata = {
                 "document_id": document_id,
                 "patient_id": patient_id,
-                "document_name": Path(document_name).name,
-                "document_type": extension,
+                "document_name": filename,
+                "document_type": document_type["extension"],
                 "file_path": storage_path,
             }
 
@@ -79,7 +94,7 @@ class DocumentService:
                 tool_name="DocumentTool",
                 action="document_uploaded",
                 status="success",
-                metadata={"document_type": extension},
+                metadata={"document_type": document_type["extension"]},
             )
 
             return {
