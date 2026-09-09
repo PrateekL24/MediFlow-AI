@@ -4,6 +4,7 @@ from pathlib import Path
 
 from backend.core.storage import upload_document, delete_document
 from backend.repositories.document_repository import DocumentRepository
+from backend.services.audit_service import AuditService
 
 
 ALLOWED_DOCUMENT_TYPES = {
@@ -23,6 +24,7 @@ class DocumentService:
         document_name: str,
         content_type: str,
         file_bytes: bytes,
+        workflow_id: str | None = None,
     ):
         if not patient_id:
             return {"success": False, "message": "Patient identification is required."}
@@ -37,9 +39,8 @@ class DocumentService:
                 "message": "Unsupported document type. Please upload a PDF, JPG, or PNG file.",
             }
 
-        max_size = int(
-            os.getenv("MAX_DOCUMENT_SIZE_BYTES", DEFAULT_MAX_DOCUMENT_SIZE)
-        )
+        max_size = int(os.getenv("MAX_DOCUMENT_SIZE_BYTES", DEFAULT_MAX_DOCUMENT_SIZE))
+
         if not file_bytes:
             return {"success": False, "message": "The uploaded document is empty."}
 
@@ -71,6 +72,15 @@ class DocumentService:
 
             if not getattr(result, "data", None):
                 raise RuntimeError("Document metadata could not be stored.")
+
+            AuditService.record_event(
+                workflow_id=workflow_id,
+                agent_name="Document",
+                tool_name="DocumentTool",
+                action="document_uploaded",
+                status="success",
+                metadata={"document_type": extension},
+            )
 
             return {
                 "success": True,
